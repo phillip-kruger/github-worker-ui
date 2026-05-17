@@ -1,60 +1,53 @@
 # github-worker-ui
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Web dashboard for monitoring and controlling the [github-worker](../github-worker/) House Elf. Built with Quarkus.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Install
 
-## Running the application in dev mode
+Requires the `github-worker` to be installed first.
 
-You can run your application in dev mode that enables live coding using:
+```bash
+./install.sh
+```
 
-```shell script
+The installer will:
+
+1. Build the Quarkus production jar
+2. Install it to `~/.local/share/github-worker-ui/`
+3. Set up an auto-starting service (systemd on Linux, launchd on macOS)
+4. Optionally add `github-worker.house-elves` to `/etc/hosts`
+
+## Access
+
+- **http://github-worker.house-elves:7478** (if hostname was added)
+- **http://localhost:7478** (always works)
+
+## Features
+
+- **Issues panel** — tracked issues with current state, title, PR link, last updated. Click a row to see the state machine flow diagram with the current step highlighted.
+- **Reviews panel** — tracked review requests with state badges
+- **Logs panel** — recent systemd journal output from the worker
+- **Config panel** — view and edit all configuration values (secrets are masked)
+- **Trigger Now** — run the worker immediately from the UI
+- **Preview** — dry-run to see what the worker would pick up
+- **Live updates** — WebSocket pushes state changes to the browser every 5 seconds
+
+## Development
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+The dev UI is available at http://localhost:7478/q/dev/
 
-## Packaging and running the application
+## API
 
-The application can be packaged using:
-
-```shell script
-./mvnw package
-```
-
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/github-worker-ui-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- Scheduler ([guide](https://quarkus.io/guides/scheduler)): Schedule recurring tasks and periodic jobs using cron expressions or fixed intervals
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- WebSockets Next ([guide](https://quarkus.io/guides/websockets-next-reference)): Implementation of the WebSocket API with enhanced efficiency and usability
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/state` | GET | Current worker state (issues + reviews) |
+| `/api/config` | GET | Config values (secrets redacted) |
+| `/api/config` | PUT | Update config values |
+| `/api/logs?lines=100` | GET | Recent worker logs |
+| `/api/trigger` | POST | Trigger a worker run |
+| `/api/preview` | POST | Run worker in preview mode |
+| `/api/live` | WebSocket | Live state updates |
