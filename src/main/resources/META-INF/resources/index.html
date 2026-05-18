@@ -634,6 +634,54 @@ td a:hover { text-decoration: underline; }
 .row-btn.retry:hover { border-color: var(--amber); color: var(--amber); }
 .row-btn.remove:hover { border-color: var(--red); color: var(--red); }
 
+/* === DISCOVERY PANEL === */
+.panel-collapse {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-2);
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s;
+  font-family: var(--mono);
+}
+
+.panel-collapse:hover { color: var(--text-0); }
+
+.panel-body.collapsed { display: none; }
+
+.discovery-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.discovery-btn {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--mono);
+}
+
+.discovery-btn:hover {
+  color: var(--text-0);
+  border-color: var(--border-bright);
+  background: var(--bg-3);
+}
+
+.discovery-btn.eyes:hover { border-color: var(--cyan); color: var(--cyan); }
+.discovery-btn.assign:hover { border-color: var(--green); color: var(--green); }
+
+.badge-issue { background: var(--green-subtle); color: var(--green); }
+.badge-pr { background: var(--purple-subtle); color: var(--purple); }
+.badge-mention { background: var(--accent-subtle); color: var(--accent); }
+.badge-topic { background: var(--amber-subtle); color: var(--amber); }
+
 /* === EMPTY STATE === */
 .empty {
   text-align: center;
@@ -706,6 +754,22 @@ td a:hover { text-decoration: underline; }
 </header>
 
 <main class="main">
+  <div class="panel" id="discoveryPanel" style="display:none;">
+    <div class="panel-head">
+      <div class="panel-title"><span class="panel-title-icon">🔍</span> Discover</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="panel-count" id="discoveryCount">0</div>
+        <button class="panel-collapse" id="discoveryToggle" onclick="toggleDiscovery()">▼</button>
+      </div>
+    </div>
+    <div class="panel-body" id="discoveryBody">
+      <table>
+        <thead><tr><th>Item</th><th>Title</th><th>Type</th><th>Source</th><th></th></tr></thead>
+        <tbody id="discoveryTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="panel-head">
       <div class="panel-title"><span class="panel-title-icon">⚡</span> Issues</div>
@@ -909,9 +973,73 @@ function updateState(data) {
   currentState = data;
   renderIssues(data.issues || {});
   renderReviews(data.reviews || {});
+  renderDiscoveries(data.discoveries || {});
   const hasActive = Object.values(data.issues || {}).some(i => i.state !== 'DONE')
                  || Object.values(data.reviews || {}).some(r => r.state !== 'DONE');
   document.getElementById('statusDot').className = 'status-dot' + (hasActive ? ' online' : '');
+}
+
+function renderDiscoveries(discoveries) {
+  const panel = document.getElementById('discoveryPanel');
+  const tbody = document.getElementById('discoveryTableBody');
+  const count = document.getElementById('discoveryCount');
+  const keys = Object.keys(discoveries);
+  count.textContent = keys.length;
+
+  if (keys.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  let html = '';
+  for (const key of keys) {
+    const d = discoveries[key];
+    const itemUrl = d.url || ('https://github.com/' + d.ownerRepo + '/' + (d.type === 'pr' ? 'pull' : 'issues') + '/' + d.number);
+    html += '<tr>';
+    html += '<td><a href="' + itemUrl + '" target="_blank">' + key + '</a></td>';
+    html += '<td class="title-cell">' + esc(d.title || '') + '</td>';
+    html += '<td><span class="badge ' + (d.type === 'pr' ? 'badge-pr' : 'badge-issue') + '">' + (d.type || 'issue') + '</span></td>';
+    html += '<td><span class="badge ' + (d.source === 'mention' ? 'badge-mention' : 'badge-topic') + '">' + esc(d.source || '') + '</span></td>';
+    html += '<td><div class="discovery-actions">';
+    html += '<button class="discovery-btn eyes" onclick="addEyes(\'' + d.ownerRepo + '\',' + d.number + ')" title="Add 👀 reaction">👀</button>';
+    if (d.type !== 'pr') {
+      html += '<button class="discovery-btn assign" onclick="selfAssign(\'' + d.ownerRepo + '\',' + d.number + ')" title="Self-assign">assign</button>';
+    }
+    html += '</div></td></tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function toggleDiscovery() {
+  const body = document.getElementById('discoveryBody');
+  const toggle = document.getElementById('discoveryToggle');
+  const collapsed = body.classList.toggle('collapsed');
+  toggle.textContent = collapsed ? '▶' : '▼';
+  localStorage.setItem('discovery-collapsed', collapsed);
+}
+
+// Restore collapse state
+if (localStorage.getItem('discovery-collapsed') === 'true') {
+  document.getElementById('discoveryBody').classList.add('collapsed');
+  document.getElementById('discoveryToggle').textContent = '▶';
+}
+
+async function addEyes(ownerRepo, number) {
+  const [owner, repo] = ownerRepo.split('/');
+  try {
+    const res = await fetch('/api/react/' + owner + '/' + repo + '/' + number, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) toast('👀 added to ' + ownerRepo + '#' + number, 'success');
+    else toast('Failed: ' + (data.error || ''), 'error');
+  } catch (e) { toast('Failed: ' + e.message, 'error'); }
+}
+
+async function selfAssign(ownerRepo, number) {
+  const [owner, repo] = ownerRepo.split('/');
+  try {
+    const res = await fetch('/api/assign/' + owner + '/' + repo + '/' + number, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) toast('Assigned ' + ownerRepo + '#' + number, 'success');
+    else toast('Failed: ' + (data.error || ''), 'error');
+  } catch (e) { toast('Failed: ' + e.message, 'error'); }
 }
 
 // === CONFIG ===
