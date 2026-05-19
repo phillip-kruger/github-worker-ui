@@ -909,7 +909,7 @@ setTheme(localStorage.getItem('house-elves-theme') || 'dark');
 // === STATE ===
 const ISSUE_STATES = [
   'NEW','AWAITING_APPROVAL','CODING','SELF_REVIEWING','FIXING_REVIEW',
-  'READY_FOR_REVIEW','ADDRESSING_FEEDBACK','SQUASHING','MONITORING_CI','FIXING_CI','DONE'
+  'READY_FOR_REVIEW','ADDRESSING_FEEDBACK','SQUASHING','MONITORING_CI','FIXING_CI','DONE','MERGED'
 ];
 
 const SECRET_KEYS = new Set(['GITHUB_TOKEN','BOT_TOKEN','GMAIL_APP_PASSWORD']);
@@ -923,7 +923,7 @@ function badgeClass(state) {
     SELF_REVIEWING: 'badge-reviewing', FIXING_REVIEW: 'badge-fixing',
     READY_FOR_REVIEW: 'badge-ready', ADDRESSING_FEEDBACK: 'badge-feedback',
     SQUASHING: 'badge-squashing', MONITORING_CI: 'badge-ci',
-    FIXING_CI: 'badge-ci-fix', DONE: 'badge-done', REVIEW_POSTED: 'badge-reviewing'
+    FIXING_CI: 'badge-ci-fix', DONE: 'badge-done', MERGED: 'badge-done', REVIEW_POSTED: 'badge-reviewing'
   };
   return map[state] || 'badge-new';
 }

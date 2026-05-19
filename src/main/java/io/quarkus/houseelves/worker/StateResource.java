@@ -68,11 +68,13 @@ public class StateResource {
                     case "CODING" -> "CODING";
                     case "SELF_REVIEWING" -> "CODING";
                     case "FIXING_REVIEW" -> "SELF_REVIEWING";
+                    case "READY_FOR_REVIEW" -> "SELF_REVIEWING";
                     case "ADDRESSING_FEEDBACK" -> "READY_FOR_REVIEW";
                     case "SQUASHING" -> "READY_FOR_REVIEW";
                     case "MONITORING_CI" -> "SQUASHING";
                     case "FIXING_CI" -> "SQUASHING";
                     case "DONE" -> "NEW";
+                    case "MERGED" -> "NEW";
                     default -> currentState;
                 };
 
